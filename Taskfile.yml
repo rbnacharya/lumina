@@ -1,0 +1,179 @@
+version: '3'
+
+vars:
+  DOCKER_COMPOSE_FILE: deployments/docker/docker-compose.yml
+  DOCKER_COMPOSE_PROD_FILE: deployments/docker/docker-compose.prod.yml
+
+tasks:
+  # Development
+  start-dev:
+    desc: Start all development services with Tilt
+    cmds:
+      - tilt up
+
+  stop-dev:
+    desc: Stop all development services
+    cmds:
+      - tilt down
+
+  dev:
+    desc: Start development services with Docker Compose (without Tilt)
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_FILE}} up -d
+
+  dev-down:
+    desc: Stop Docker Compose development services
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_FILE}} down
+
+  logs:
+    desc: View logs from all services
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_FILE}} logs -f
+
+  # Database
+  migrate:
+    desc: Run database migrations
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_FILE}} exec gateway /app/gateway migrate up
+
+  migrate-down:
+    desc: Rollback database migrations
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_FILE}} exec gateway /app/gateway migrate down
+
+  migrate-create:
+    desc: Create a new migration file
+    cmds:
+      - |
+        if [ -z "{{.CLI_ARGS}}" ]; then
+          echo "Usage: task migrate-create -- <migration_name>"
+          exit 1
+        fi
+        timestamp=$(date +%Y%m%d%H%M%S)
+        touch apps/gateway/internal/database/migrations/${timestamp}_{{.CLI_ARGS}}.up.sql
+        touch apps/gateway/internal/database/migrations/${timestamp}_{{.CLI_ARGS}}.down.sql
+        echo "Created migration files for: {{.CLI_ARGS}}"
+
+  # Testing
+  test:
+    desc: Run all tests
+    cmds:
+      - task: test-backend
+      - task: test-frontend
+
+  test-backend:
+    desc: Run Go backend tests
+    dir: apps/gateway
+    cmds:
+      - go test -v -race -cover ./...
+
+  test-frontend:
+    desc: Run Next.js frontend tests
+    dir: apps/web
+    cmds:
+      - npm test
+
+  # Building
+  build:
+    desc: Build all production images
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_PROD_FILE}} build
+
+  build-gateway:
+    desc: Build Go gateway binary
+    dir: apps/gateway
+    cmds:
+      - CGO_ENABLED=0 go build -ldflags="-s -w" -o gateway ./cmd/gateway
+
+  build-web:
+    desc: Build Next.js frontend
+    dir: apps/web
+    cmds:
+      - npm run build
+
+  # Production
+  prod-up:
+    desc: Start production services
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_PROD_FILE}} up -d
+
+  prod-down:
+    desc: Stop production services
+    cmds:
+      - docker compose -f {{.DOCKER_COMPOSE_PROD_FILE}} down
+
+  # Utilities
+  clean:
+    desc: Clean build artifacts and temporary files
+    cmds:
+      - rm -rf apps/gateway/gateway apps/gateway/tmp
+      - rm -rf apps/web/.next apps/web/out apps/web/node_modules/.cache
+
+  lint:
+    desc: Run linters
+    cmds:
+      - task: lint-backend
+      - task: lint-frontend
+
+  lint-backend:
+    desc: Run Go linter
+    dir: apps/gateway
+    cmds:
+      - golangci-lint run ./...
+
+  lint-frontend:
+    desc: Run ESLint
+    dir: apps/web
+    cmds:
+      - npm run lint
+
+  fmt:
+    desc: Format code
+    cmds:
+      - task: fmt-backend
+
+  fmt-backend:
+    desc: Format Go code
+    dir: apps/gateway
+    cmds:
+      - go fmt ./...
+
+  # Setup
+  setup:
+    desc: Initial project setup
+    cmds:
+      - task: setup-backend
+      - task: setup-frontend
+
+  setup-backend:
+    desc: Install Go dependencies
+    dir: apps/gateway
+    cmds:
+      - go mod download
+
+  setup-frontend:
+    desc: Install npm dependencies
+    dir: apps/web
+    cmds:
+      - npm install
+
+  # Health checks
+  health:
+    desc: Check health of all services
+    cmds:
+      - |
+        echo "Checking Gateway..."
+        curl -s http://localhost:8080/health || echo "Gateway not responding"
+        echo ""
+        echo "Checking Web..."
+        curl -s http://localhost:3000 > /dev/null && echo "Web OK" || echo "Web not responding"
+        echo ""
+        echo "Checking PostgreSQL..."
+        docker compose -f {{.DOCKER_COMPOSE_FILE}} exec -T postgres pg_isready || echo "PostgreSQL not responding"
+        echo ""
+        echo "Checking Redis..."
+        docker compose -f {{.DOCKER_COMPOSE_FILE}} exec -T redis redis-cli ping || echo "Redis not responding"
+        echo ""
+        echo "Checking OpenSearch..."
+        curl -s http://localhost:9200/_cluster/health | jq -r '.status' || echo "OpenSearch not responding"

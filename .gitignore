@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+apps/gateway/gateway
+apps/gateway/tmp/
+**/tmp/
+tmp/
+
+# Test files
+*.test
+*.out
+coverage/
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+.docker/
+
+# Tilt
+.tilt/
+tilt_modules/
+
+# Database
+*.db
+*.sqlite
