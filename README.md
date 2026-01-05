@@ -153,6 +153,12 @@ The gateway will:
 - [ ] **Image Generation** - Support for DALL-E, Stable Diffusion, and other image generation APIs
 - [ ] **Accurate Cost Calculation** - Real-time cost tracking based on configurable model pricing
 
+## Support
+
+For support, please:
+- Create an issue on [GitHub](https://github.com/rbnacharya/lumina/issues)
+- Contact me at rbnacharya@gmail.com
+
 ## License
 
 MIT
