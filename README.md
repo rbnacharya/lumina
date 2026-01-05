@@ -146,6 +146,13 @@ The gateway will:
 - **Features:** Key management, cost tracking, request logging, rate limiting
 - **Infrastructure:** PostgreSQL, Redis, OpenSearch
 
+## Upcoming Features
+
+- [ ] **Model Pricing Configuration** - Admin interface to upload and manage per-model pricing (initially via JSON config files, later via dashboard)
+- [ ] **Google Gemini Support** - Add Gemini models as a supported provider
+- [ ] **Image Generation** - Support for DALL-E, Stable Diffusion, and other image generation APIs
+- [ ] **Accurate Cost Calculation** - Real-time cost tracking based on configurable model pricing
+
 ## License
 
 MIT
