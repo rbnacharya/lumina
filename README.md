@@ -25,7 +25,39 @@ Lumina is a proxy that sits between your client applications and LLM providers (
 
 ## Quick Start
 
-### Prerequisites
+### Docker (Recommended)
+
+The easiest way to run Lumina is using the pre-built Docker image:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -p 3000:3000 \
+  -e DATABASE_URL=postgres://user:pass@host:5432/lumina \
+  -e REDIS_URL=redis://host:6379 \
+  -e OPENSEARCH_URL=http://host:9200 \
+  -e JWT_SECRET=your-secret-key \
+  -e ENCRYPTION_KEY=your-32-byte-key \
+  rbnacharya/lumina:latest
+```
+
+The container includes both the Gateway API (port 8080) and Web Dashboard (port 3000).
+
+**Required Environment Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `OPENSEARCH_URL` | OpenSearch connection string |
+| `JWT_SECRET` | Secret for JWT signing |
+| `ENCRYPTION_KEY` | 32-byte key for encrypting API keys |
+
+**Infrastructure Requirements:** PostgreSQL 15+, Redis 7+, OpenSearch 2.x
+
+### Development Setup
+
+#### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) & Docker Compose
 - [Tilt](https://docs.tilt.dev/install.html) (for development)
@@ -33,7 +65,7 @@ Lumina is a proxy that sits between your client applications and LLM providers (
 - [Go 1.22+](https://golang.org/dl/) (for local development)
 - [Node.js 20+](https://nodejs.org/) (for frontend development)
 
-### Development
+#### Local Development
 
 1. **Start all services with Tilt:**
    ```bash
