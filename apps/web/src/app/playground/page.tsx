@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api, type VirtualKey } from '@/lib/api'
+import { api, type VirtualKey, type ProviderInfo } from '@/lib/api'
 import { Play, CheckCircle, XCircle, Clock } from 'lucide-react'
 
 // Available models in provider/model format
@@ -29,6 +29,7 @@ const AVAILABLE_MODELS = [
 
 export default function PlaygroundPage() {
   const [keys, setKeys] = useState<VirtualKey[]>([])
+  const [providers, setProviders] = useState<ProviderInfo[]>([])
   const [selectedKeyId, setSelectedKeyId] = useState<string>('')
   const [virtualKey, setVirtualKey] = useState('')
   const [selectedModel, setSelectedModel] = useState('openai/gpt-3.5-turbo')
@@ -42,23 +43,27 @@ export default function PlaygroundPage() {
   } | null>(null)
 
   useEffect(() => {
-    const fetchKeys = async () => {
+    const fetchData = async () => {
       try {
-        const data = await api.listKeys()
-        setKeys((data || []).filter(k => !k.revoked_at))
+        const [keysData, providersData] = await Promise.all([
+          api.listKeys(),
+          api.listProviders()
+        ])
+        setKeys((keysData || []).filter(k => !k.revoked_at))
+        setProviders(providersData || [])
       } catch (error) {
-        console.error('Failed to fetch keys:', error)
+        console.error('Failed to fetch data:', error)
       }
     }
-    fetchKeys()
+    fetchData()
   }, [])
 
   const selectedKey = keys.find(k => k.id === selectedKeyId)
 
-  // Filter available models based on key's providers
-  const availableModelsForKey = selectedKey
+  // Filter available models based on account-level providers
+  const availableModelsForKey = providers.length > 0
     ? AVAILABLE_MODELS.filter(m =>
-        selectedKey.providers?.some(p => p.provider === m.provider)
+        providers.some(p => p.provider === m.provider)
       )
     : AVAILABLE_MODELS
 
@@ -124,7 +129,7 @@ export default function PlaygroundPage() {
                   <SelectContent>
                     {keys.map((key) => (
                       <SelectItem key={key.id} value={key.id}>
-                        {key.name} ({key.providers?.map(p => p.provider).join(', ')})
+                        {key.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -134,12 +139,15 @@ export default function PlaygroundPage() {
               {selectedKey && (
                 <div className="rounded-lg bg-muted p-3 text-sm space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Providers:</span>
-                    {selectedKey.providers?.map(p => (
+                    <span className="text-muted-foreground">Configured Providers:</span>
+                    {providers.map(p => (
                       <Badge key={p.provider} variant="outline">
                         {p.provider.toUpperCase()}
                       </Badge>
                     ))}
+                    {providers.length === 0 && (
+                      <span className="text-muted-foreground italic">None configured</span>
+                    )}
                   </div>
                   {selectedKey.allowed_models?.length > 0 && (
                     <div>
