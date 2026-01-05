@@ -55,6 +55,25 @@ The container includes both the Gateway API (port 8080) and Web Dashboard (port 
 
 **Infrastructure Requirements:** PostgreSQL 15+, Redis 7+, OpenSearch 2.x
 
+#### Docker Compose (Full Stack)
+
+To run Lumina with all required infrastructure using Docker Compose:
+
+```bash
+# Clone the repository
+git clone https://github.com/rbnacharya/lumina.git
+cd lumina
+
+# Start all services
+docker compose up -d
+
+# Access the services
+# - Gateway API: http://localhost:8080
+# - Web Dashboard: http://localhost:3000
+```
+
+This starts Lumina along with PostgreSQL, Redis, and OpenSearch.
+
 ### Development Setup
 
 #### Prerequisites

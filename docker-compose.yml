@@ -1,0 +1,97 @@
+version: '3.8'
+
+# Minimal Docker Compose for running Lumina with all required infrastructure
+# Usage: docker compose up -d
+
+services:
+  # Lumina Gateway + Web Dashboard (combined image)
+  lumina:
+    image: rbnacharya/lumina:latest
+    ports:
+      - "8080:8080"  # Gateway API
+      - "3000:3000"  # Web Dashboard
+    environment:
+      - DATABASE_URL=postgres://lumina:lumina@postgres:5432/lumina?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - OPENSEARCH_URL=http://opensearch:9200
+      - JWT_SECRET=change-this-to-a-secure-random-string
+      - ENCRYPTION_KEY=change-this-to-a-32-byte-hex-key
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    networks:
+      - lumina
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=lumina
+      - POSTGRES_PASSWORD=lumina
+      - POSTGRES_DB=lumina
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumina -d lumina"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lumina
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lumina
+    restart: unless-stopped
+
+  # OpenSearch for Log Storage
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - lumina
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  opensearch_data:
+
+networks:
+  lumina:
+    driver: bridge
